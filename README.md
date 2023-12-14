@@ -68,6 +68,26 @@ frame_enhancer_blend: Optional[int] = 80
 face_debugger_items: Optional[List[FaceDebuggerItem]] = ['kps', 'face-mask']
 ```
 
+Types:
+```
+Padding = Tuple[int, int, int, int]
+
+FaceSelectorMode = Literal['reference', 'one', 'many']
+FaceAnalyserOrder = Literal['left-right', 'right-left', 'top-bottom', 'bottom-top', 'small-large', 'large-small', 'best-worst', 'worst-best']
+FaceAnalyserAge = Literal['child', 'teen', 'adult', 'senior']
+FaceAnalyserGender = Literal['male', 'female']
+FaceDetectorModel = Literal['retinaface', 'yunet']
+FaceRecognizerModel = Literal['arcface_blendface', 'arcface_inswapper', 'arcface_simswap']
+TempFrameFormat = Literal['jpg', 'png']
+OutputVideoEncoder = Literal['libx264', 'libx265', 'libvpx-vp9', 'h264_nvenc', 'hevc_nvenc']
+
+FaceSwapperModel = Literal['blendface_256', 'inswapper_128', 'inswapper_128_fp16', 'simswap_256', 'simswap_512_unofficial']
+FaceEnhancerModel = Literal['codeformer', 'gfpgan_1.2', 'gfpgan_1.3', 'gfpgan_1.4', 'gpen_bfr_256', 'gpen_bfr_512', 'restoreformer']
+FrameEnhancerModel = Literal['real_esrgan_x2plus', 'real_esrgan_x4plus', 'real_esrnet_x4plus']
+
+FaceDebuggerItem = Literal['bbox', 'kps', 'face-mask', 'score']
+```
+
 FaceFusion
 ==========
 
