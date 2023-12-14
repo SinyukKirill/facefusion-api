@@ -1,3 +1,73 @@
+API mode
+========
+
+Run the command:
+
+```
+python run.py --api
+```
+
+Request body:
+
+```
+user_id : str
+# source image
+source : str
+# target image
+target : str
+# 'image' or 'video'
+type: str
+
+# execution
+execution_providers: Optional[List[str]] = ['CPUExecutionProvider']
+execution_thread_count: Optional[int] = 4
+execution_queue_count: Optional[int] = 1
+max_memory: Optional[int] = 0
+
+# face analyser
+face_analyser_order: Optional[FaceAnalyserOrder] = 'left-right'
+face_analyser_age: Optional[FaceAnalyserAge] = None
+face_analyser_gender: Optional[FaceAnalyserGender] = None
+face_detector_model: Optional[FaceDetectorModel] = 'retinaface'
+face_detector_size: Optional[str] = '640x640'
+face_detector_score: Optional[float] = 0.5
+face_recognizer_model: Optional[FaceRecognizerModel] = 'arcface_inswapper'
+
+# face selector
+face_selector_mode: Optional[FaceSelectorMode] = 'reference'
+reference_face_position: Optional[int] = 0
+reference_face_distance: Optional[float] = 0.6
+reference_frame_number: Optional[int] = 0
+
+# face mask
+face_mask_blur: Optional[float] = 0.3
+face_mask_padding: Optional[Padding] = (0, 0, 0, 0)
+
+# frame extraction
+trim_frame_start: Optional[int] = None
+trim_frame_end: Optional[int] = None
+temp_frame_format: Optional[TempFrameFormat] = 'jpg'
+temp_frame_quality: Optional[int] = 100
+keep_temp: Optional[bool] = False
+
+# output creation
+output_image_quality: Optional[int] = 80
+output_video_encoder: Optional[OutputVideoEncoder] = 'libx264'
+output_video_quality: Optional[int] = 80
+keep_fps: Optional[bool] = False
+skip_audio: Optional[bool] = False
+
+# frame processors
+frame_processors: List[str] = ['face_swapper']
+
+face_swapper_model: Optional[FaceSwapperModel] = 'inswapper_128'
+face_enhancer_model: Optional[FaceEnhancerModel] = 'gfpgan_1.4'
+face_enhancer_blend: Optional[int] = 80
+frame_enhancer_model: Optional[FrameEnhancerModel] = 'real_esrgan_x2plus'
+frame_enhancer_blend: Optional[int] = 80
+face_debugger_items: Optional[List[FaceDebuggerItem]] = ['kps', 'face-mask']
+```
+
 FaceFusion
 ==========
 
