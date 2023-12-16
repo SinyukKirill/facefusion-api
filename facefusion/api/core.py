@@ -7,28 +7,28 @@ from facefusion.api.model import Params, print_globals
 import facefusion.globals as globals
 import facefusion.processors.frame.globals as frame_processors_globals
 from facefusion import core
+from facefusion.utilities import normalize_output_path
 
 app = FastAPI()
 router = APIRouter()
 
 @router.post("/")
 async def process_frames(params: Params = Body(...)) -> dict:
-    delete_files_in_directory('images/temp/source')
-    delete_files_in_directory('images/temp/target')
-    delete_files_in_directory('images/temp/output')
+    delete_files_in_directory('temp/source')
+    delete_files_in_directory('temp/target')
+    delete_files_in_directory('temp/output')
 
     if not (params.source or params.target):
         return {"message": "Source image or path is required"}
 
     update_global_variables(params)
-    if params.type == 'image':
-        globals.source_path = f'images/temp/source/{params.user_id}-{int(time.time())}.jpg'
-        globals.target_path = f'images/temp/target/{params.user_id}-{int(time.time())}.jpg'
-        globals.output_path = f'images/temp/output/{params.user_id}-{int(time.time())}.jpg'
-    elif params.type == 'video':
-        globals.source_path = f'images/temp/source/{params.user_id}-{int(time.time())}.jpg'
-        globals.target_path = f'images/temp/target/{params.user_id}-{int(time.time())}.mp4'
-        globals.output_path = f'images/temp/output/{params.user_id}-{int(time.time())}.mp4'
+    
+    globals.source_path = f"temp/source/{params.user_id}-{int(time.time())}.{params.source_type}"
+    globals.target_path = f"temp/target/{params.user_id}-{int(time.time())}.{params.target_type}"
+    globals.output_path = f"temp/output/{params.user_id}-{int(time.time())}.{params.target_type}"
+    
+    print(globals.output_path)
+
     print_globals()
 
     save_file(globals.source_path, params.source)

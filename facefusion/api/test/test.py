@@ -17,7 +17,8 @@ params = {
     'user_id': 'test',
     'source': source_str,
     'target': target_str,
-    'type': 'image',
+    'source_type': 'jpg',
+    'target_type': 'jpg',
 }
 
 url = 'https://3499-2400-4050-b6e0-1600-8c32-63d1-26ff-e1f3.ngrok-free.app/'

@@ -7,7 +7,8 @@ class Params(BaseModel):
     user_id : str
     source : str
     target : str
-    type: str
+    source_type: str
+    target_type: str
 
     # execution
     execution_providers: Optional[List[str]] = ['CPUExecutionProvider']

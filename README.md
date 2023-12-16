@@ -15,8 +15,9 @@ user_id : str
 source : str
 # target image
 target : str
-# 'image' or 'video'
-type: str
+# extension
+source_type: str
+target_type: str
 
 # execution
 execution_providers: Optional[List[str]] = ['CPUExecutionProvider']
