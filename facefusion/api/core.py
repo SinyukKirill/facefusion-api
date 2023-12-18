@@ -26,7 +26,7 @@ async def process_frames(params: Params = Body(...)) -> dict:
     globals.source_path = f"temp/source/{params.user_id}-{int(time.time())}.{params.source_type}"
     globals.target_path = f"temp/target/{params.user_id}-{int(time.time())}.{params.target_type}"
     globals.output_path = f"temp/output/{params.user_id}-{int(time.time())}.{params.target_type}"
-    
+
     print(globals.output_path)
 
     print_globals()
@@ -35,7 +35,7 @@ async def process_frames(params: Params = Body(...)) -> dict:
     save_file(globals.target_path, params.target)
 
     try:
-        core.conditional_process()
+        core.api_conditional_process()
     except Exception as e:
         print(e)
         return {"message": "Error"}

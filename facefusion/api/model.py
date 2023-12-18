@@ -5,7 +5,7 @@ from facefusion.processors.frame.typings import FaceSwapperModel, FaceEnhancerMo
 
 class Params(BaseModel):
     user_id : str
-    source : str
+    source : Optional[str]
     target : str
     source_type: str
     target_type: str
@@ -50,7 +50,7 @@ class Params(BaseModel):
     skip_audio: Optional[bool] = False
 
     # frame processors
-    frame_processors: List[str] = ['face_swapper']
+    frame_processors: List[str] = ['face_blur']
 
     face_swapper_model: Optional[FaceSwapperModel] = 'inswapper_128'
     face_enhancer_model: Optional[FaceEnhancerModel] = 'gfpgan_1.4'

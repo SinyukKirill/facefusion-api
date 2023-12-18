@@ -8,7 +8,7 @@ def image_to_base64_str(image_path):
         return encoded_string.decode('utf-8')
 
 source_image_path = 'source.jpg'
-target_image_path = 'target.jpg'
+target_image_path = 'target.mp4'
 
 source_str = image_to_base64_str(source_image_path)
 target_str = image_to_base64_str(target_image_path)
@@ -18,7 +18,13 @@ params = {
     'source': source_str,
     'target': target_str,
     'source_type': 'jpg',
-    'target_type': 'jpg',
+    'target_type': 'mp4',
+    'frame_processors': ['face_blur'],
+    'face_mask_blur': 0.5,
+    'face_mask_padding': [5, 5, 5, 5],
+    'keep_fps': True,
+    'execution_thread_count': 40,
+    'face_selector_mode': 'one',
 }
 
 url = 'https://3499-2400-4050-b6e0-1600-8c32-63d1-26ff-e1f3.ngrok-free.app/'

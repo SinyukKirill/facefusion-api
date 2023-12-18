@@ -56,6 +56,20 @@ def paste_back(temp_frame : Frame, crop_frame: Frame, affine_matrix : Matrix, fa
 	return paste_frame
 
 
+def paste_back_ellipse(temp_frame : Frame, crop_frame: Frame, affine_matrix : Matrix, face_mask_blur : float, face_mask_padding : Padding) -> Frame:
+	inverse_matrix = cv2.invertAffineTransform(affine_matrix)
+	temp_frame_size = temp_frame.shape[:2][::-1]
+	mask_size = tuple(crop_frame.shape[:2])
+	mask_frame = create_ellipse_mask_frame(mask_size, face_mask_blur, face_mask_padding)
+	inverse_mask_frame = cv2.warpAffine(mask_frame, inverse_matrix, temp_frame_size).clip(0, 1)
+	inverse_crop_frame = cv2.warpAffine(crop_frame, inverse_matrix, temp_frame_size, borderMode = cv2.BORDER_REPLICATE)
+	paste_frame = temp_frame.copy()
+	paste_frame[:, :, 0] = inverse_mask_frame * inverse_crop_frame[:, :, 0] + (1 - inverse_mask_frame) * temp_frame[:, :, 0]
+	paste_frame[:, :, 1] = inverse_mask_frame * inverse_crop_frame[:, :, 1] + (1 - inverse_mask_frame) * temp_frame[:, :, 1]
+	paste_frame[:, :, 2] = inverse_mask_frame * inverse_crop_frame[:, :, 2] + (1 - inverse_mask_frame) * temp_frame[:, :, 2]
+	return paste_frame
+
+
 @lru_cache(maxsize = None)
 def create_static_mask_frame(mask_size : Size, face_mask_blur : float, face_mask_padding : Padding) -> Frame:
 	mask_frame = numpy.ones(mask_size, numpy.float32)
@@ -65,9 +79,25 @@ def create_static_mask_frame(mask_size : Size, face_mask_blur : float, face_mask
 	mask_frame[-max(blur_area, int(mask_size[1] * face_mask_padding[2] / 100)):, :] = 0
 	mask_frame[:, :max(blur_area, int(mask_size[0] * face_mask_padding[3] / 100))] = 0
 	mask_frame[:, -max(blur_area, int(mask_size[0] * face_mask_padding[1] / 100)):] = 0
-	# if blur_amount > 0:
-	# 	mask_frame = cv2.GaussianBlur(mask_frame, (0, 0), blur_amount * 0.25)
+	if blur_amount > 0:
+		mask_frame = cv2.GaussianBlur(mask_frame, (0, 0), blur_amount * 0.25)
 	return mask_frame
+
+
+@lru_cache(maxsize=None)
+def create_ellipse_mask_frame(mask_size: Size, face_mask_blur: float, face_mask_padding: Padding) -> Frame:
+    mask_frame = numpy.zeros(mask_size, numpy.float32)
+    center = (mask_size[1] // 2, mask_size[0] // 2)
+    axes = (max(1, mask_size[1] // 2 - int(mask_size[1] * face_mask_padding[1] / 100)),
+            max(1, mask_size[0] // 2 - int(mask_size[0] * face_mask_padding[0] / 100)))
+    cv2.ellipse(mask_frame, center, axes, 0, 0, 360, 1, -1)
+
+    if face_mask_blur > 0:
+        blur_amount = int(mask_size[0] * 0.5 * face_mask_blur)
+        mask_frame = cv2.GaussianBlur(mask_frame, (0, 0), blur_amount * 0.25)
+
+    return mask_frame
+
 
 
 @lru_cache(maxsize = None)

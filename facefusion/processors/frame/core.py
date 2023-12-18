@@ -53,6 +53,15 @@ def get_frame_processors_modules(frame_processors : List[str]) -> List[ModuleTyp
 	return FRAME_PROCESSORS_MODULES
 
 
+def api_get_frame_processors_modules(frame_processors: List[str]) -> List[ModuleType]:
+    frame_processors_modules = []  # ローカル変数を使用
+    for frame_processor in frame_processors:
+        frame_processor_module = load_frame_processor_module(frame_processor)
+        frame_processors_modules.append(frame_processor_module)
+    return frame_processors_modules
+
+
+
 def clear_frame_processors_modules() -> None:
 	global FRAME_PROCESSORS_MODULES
 
