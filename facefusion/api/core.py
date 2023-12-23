@@ -18,21 +18,20 @@ async def process_frames(params: Params = Body(...)) -> dict:
     delete_files_in_directory('temp/target')
     delete_files_in_directory('temp/output')
 
-    if not (params.source or params.target):
-        return {"message": "Source image or path is required"}
-
     update_global_variables(params)
     
-    globals.source_path = f"temp/source/{params.user_id}-{int(time.time())}.{params.source_type}"
+    if params.source and params.source_type:
+        globals.source_path = f"temp/source/{params.user_id}-{int(time.time())}.{params.source_type}"
+        save_file(globals.source_path, params.source)
+    else:
+        globals.source_path = ''
+
     globals.target_path = f"temp/target/{params.user_id}-{int(time.time())}.{params.target_type}"
+    save_file(globals.target_path, params.target)
+
     globals.output_path = f"temp/output/{params.user_id}-{int(time.time())}.{params.target_type}"
 
-    print(globals.output_path)
-
     print_globals()
-
-    save_file(globals.source_path, params.source)
-    save_file(globals.target_path, params.target)
 
     try:
         core.api_conditional_process()

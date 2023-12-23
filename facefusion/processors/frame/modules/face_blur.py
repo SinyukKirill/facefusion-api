@@ -162,12 +162,12 @@ def pre_process(mode : ProcessMode) -> bool:
 	elif not is_file(model_path):
 		update_status(wording.get('model_file_not_present') + wording.get('exclamation_mark'), NAME)
 		return False
-	if not is_image(facefusion.globals.source_path):
-		update_status(wording.get('select_image_source') + wording.get('exclamation_mark'), NAME)
-		return False
-	elif not get_one_face(read_static_image(facefusion.globals.source_path)):
-		update_status(wording.get('no_source_face_detected') + wording.get('exclamation_mark'), NAME)
-		return False
+	# if not is_image(facefusion.globals.source_path):
+	# 	update_status(wording.get('select_image_source') + wording.get('exclamation_mark'), NAME)
+	# 	return False
+	# elif not get_one_face(read_static_image(facefusion.globals.source_path)):
+	# 	update_status(wording.get('no_source_face_detected') + wording.get('exclamation_mark'), NAME)
+	# 	return False
 	if mode in [ 'output', 'preview' ] and not is_image(facefusion.globals.target_path) and not is_video(facefusion.globals.target_path):
 		update_status(wording.get('select_image_or_video_target') + wording.get('exclamation_mark'), NAME)
 		return False
@@ -186,12 +186,13 @@ def post_process() -> None:
 
 
 def apply_blur_to_face(target_face: Face, temp_frame: Frame) -> Frame:
-    print('apply_blur_to_face')
     model_template = get_options('model').get('template')
     model_size = get_options('model').get('size')
     crop_frame, affine_matrix = warp_face(temp_frame, target_face.kps, model_template, model_size)
+
     blurred_face = apply_blur(crop_frame)
     temp_frame = paste_back_ellipse(temp_frame, blurred_face, affine_matrix, facefusion.globals.face_mask_blur, facefusion.globals.face_mask_padding)
+
     return temp_frame
 
 
@@ -200,24 +201,24 @@ def apply_blur(crop_frame: Frame) -> Frame:
     return blurred_frame
 
 
-def prepare_source_frame(source_face : Face) -> numpy.ndarray[Any, Any]:
-	source_frame = read_static_image(facefusion.globals.source_path)
-	source_frame, _ = warp_face(source_frame, source_face.kps, 'arcface_v2', (112, 112))
-	source_frame = source_frame[:, :, ::-1] / 255.0
-	source_frame = source_frame.transpose(2, 0, 1)
-	source_frame = numpy.expand_dims(source_frame, axis = 0).astype(numpy.float32)
-	return source_frame
+# def prepare_source_frame(source_face : Face) -> numpy.ndarray[Any, Any]:
+# 	source_frame = read_static_image(facefusion.globals.source_path)
+# 	source_frame, _ = warp_face(source_frame, source_face.kps, 'arcface_v2', (112, 112))
+# 	source_frame = source_frame[:, :, ::-1] / 255.0
+# 	source_frame = source_frame.transpose(2, 0, 1)
+# 	source_frame = numpy.expand_dims(source_frame, axis = 0).astype(numpy.float32)
+# 	return source_frame
 
 
-def prepare_source_embedding(source_face : Face) -> Embedding:
-	model_type = get_options('model').get('type')
-	if model_type == 'inswapper':
-		model_matrix = get_model_matrix()
-		source_embedding = source_face.embedding.reshape((1, -1))
-		source_embedding = numpy.dot(source_embedding, model_matrix) / numpy.linalg.norm(source_embedding)
-	else:
-		source_embedding = source_face.normed_embedding.reshape(1, -1)
-	return source_embedding
+# def prepare_source_embedding(source_face : Face) -> Embedding:
+# 	model_type = get_options('model').get('type')
+# 	if model_type == 'inswapper':
+# 		model_matrix = get_model_matrix()
+# 		source_embedding = source_face.embedding.reshape((1, -1))
+# 		source_embedding = numpy.dot(source_embedding, model_matrix) / numpy.linalg.norm(source_embedding)
+# 	else:
+# 		source_embedding = source_face.normed_embedding.reshape(1, -1)
+# 	return source_embedding
 
 
 def prepare_crop_frame(crop_frame : Frame) -> Frame:
@@ -237,7 +238,7 @@ def normalize_crop_frame(crop_frame : Frame) -> Frame:
 	return crop_frame
 
 
-def process_frame(source_face: Face, reference_face: Face, temp_frame: Frame) -> Frame:
+def process_frame(reference_face: Face, temp_frame: Frame) -> Frame:
 	if 'reference' in facefusion.globals.face_selector_mode:
 		similar_faces = find_similar_faces(temp_frame, reference_face, facefusion.globals.reference_face_distance)
 		if similar_faces:
@@ -247,29 +248,35 @@ def process_frame(source_face: Face, reference_face: Face, temp_frame: Frame) ->
 		target_face = get_one_face(temp_frame)
 		if target_face:
 			temp_frame = apply_blur_to_face(target_face, temp_frame)
+		else:
+			import time
+			print('No face detected in this frame.')
+			write_image(f'temp/error/no_face_detected-{time.time()}.jpg', temp_frame)
 	if 'many' in facefusion.globals.face_selector_mode:
 		many_faces = get_many_faces(temp_frame)
 		if many_faces:
 			for target_face in many_faces:
 				temp_frame = apply_blur_to_face(target_face, temp_frame)
+		else:
+			import time
+			print('No face detected in this frame.')
+			write_image(f'temp/error/no_face_detected-{time.time()}.jpg', temp_frame)
 	return temp_frame
 
 
 def process_frames(source_path : str, temp_frame_paths : List[str], update_progress : Update_Process) -> None:
-	source_face = get_one_face(read_static_image(source_path))
 	reference_face = get_face_reference() if 'reference' in facefusion.globals.face_selector_mode else None
 	for temp_frame_path in temp_frame_paths:
 		temp_frame = read_image(temp_frame_path)
-		result_frame = process_frame(source_face, reference_face, temp_frame)
+		result_frame = process_frame(reference_face, temp_frame)
 		write_image(temp_frame_path, result_frame)
 		update_progress()
 
 
 def process_image(source_path : str, target_path : str, output_path : str) -> None:
-	source_face = get_one_face(read_static_image(source_path))
 	target_frame = read_static_image(target_path)
 	reference_face = get_one_face(target_frame, facefusion.globals.reference_face_position) if 'reference' in facefusion.globals.face_selector_mode else None
-	result_frame = process_frame(source_face, reference_face, target_frame)
+	result_frame = process_frame(reference_face, target_frame)
 	write_image(output_path, result_frame)
 
 

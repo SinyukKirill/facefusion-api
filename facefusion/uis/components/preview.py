@@ -164,9 +164,15 @@ def process_preview_frame(source_face : Face, reference_face : Face, temp_frame 
 	for frame_processor in facefusion.globals.frame_processors:
 		frame_processor_module = load_frame_processor_module(frame_processor)
 		if frame_processor_module.pre_process('preview'):
-			temp_frame = frame_processor_module.process_frame(
-				source_face,
-				reference_face,
-				temp_frame
-			)
+			if frame_processor == 'face_blur':
+				temp_frame = frame_processor_module.process_frame(
+					reference_face,
+					temp_frame
+				)
+			else:
+				temp_frame = frame_processor_module.process_frame(
+					source_face,
+					reference_face,
+					temp_frame
+				)
 	return temp_frame

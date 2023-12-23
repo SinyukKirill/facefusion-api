@@ -5,9 +5,9 @@ from facefusion.processors.frame.typings import FaceSwapperModel, FaceEnhancerMo
 
 class Params(BaseModel):
     user_id : str
-    source : Optional[str]
+    source : Optional[str] = None
     target : str
-    source_type: str
+    source_type: Optional[str] = None
     target_type: str
 
     # execution

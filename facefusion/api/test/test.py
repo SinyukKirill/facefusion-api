@@ -8,16 +8,16 @@ def image_to_base64_str(image_path):
         return encoded_string.decode('utf-8')
 
 source_image_path = 'source.jpg'
-target_image_path = 'target.mp4'
+target_image_path = 'test-2.mp4'
 
 source_str = image_to_base64_str(source_image_path)
 target_str = image_to_base64_str(target_image_path)
 
 params = {
     'user_id': 'test',
-    'source': source_str,
+    # 'source': source_str,
     'target': target_str,
-    'source_type': 'jpg',
+    # 'source_type': 'jpg',
     'target_type': 'mp4',
     'frame_processors': ['face_blur'],
     'face_mask_blur': 0.5,
@@ -27,14 +27,12 @@ params = {
     'face_selector_mode': 'one',
 }
 
-url = 'https://3499-2400-4050-b6e0-1600-8c32-63d1-26ff-e1f3.ngrok-free.app/'
+url = 'https://a8b7-2400-4050-b6e0-1600-c402-983e-4379-906c.ngrok-free.app/'
 response = requests.post(url, json=params)
 
-# ステータスコードとレスポンスの内容を確認
 print("Status Code:", response.status_code)
-print("Response Body:", response.text)
+# print("Response Body:", response.text)
 
-# ステータスコードが200の場合のみ処理を進める
 if response.status_code == 200:
     output_data = base64.b64decode(response.json()['output'])
     with open(f'output/{int(time.time())}.jpg', 'wb') as f:
