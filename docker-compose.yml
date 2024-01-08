@@ -1,0 +1,8 @@
+services:
+ facefusion:
+  build:
+   context: .
+   dockerfile: Dockerfile
+  command: [ 'python', 'run.py', '--api']
+  ports:
+  - 8000:8000
