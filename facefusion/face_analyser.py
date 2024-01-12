@@ -3,6 +3,8 @@ import threading
 import cv2
 import numpy
 import onnxruntime
+from ultralytics import YOLO
+import torch
 
 import facefusion.globals
 from facefusion.face_cache import get_faces_cache, set_faces_cache
@@ -16,6 +18,12 @@ THREAD_SEMAPHORE : threading.Semaphore = threading.Semaphore()
 THREAD_LOCK : threading.Lock = threading.Lock()
 MODELS : Dict[str, ModelValue] =\
 {
+	# TODO: githubのurl変える
+	'face_detector_yolo_face':
+	{
+		'url': '',
+		'path': resolve_relative_path('../.assets/models/yolov8n-face.pt')
+	},
 	'face_detector_retinaface':
 	{
 		'url': 'https://github.com/facefusion/facefusion-assets/releases/download/models/retinaface_10g.onnx',
@@ -58,13 +66,15 @@ def get_face_analyser() -> Any:
 				face_detector = onnxruntime.InferenceSession(MODELS.get('face_detector_retinaface').get('path'), providers = facefusion.globals.execution_providers)
 			if facefusion.globals.face_detector_model == 'yunet':
 				face_detector = cv2.FaceDetectorYN.create(MODELS.get('face_detector_yunet').get('path'), '', (0, 0))
+			if facefusion.globals.face_detector_model == 'yolo_face':
+				face_detector = YOLO(MODELS.get('face_detector_yolo_face').get('path'))
 			if facefusion.globals.face_recognizer_model == 'arcface_blendface':
 				face_recognizer = onnxruntime.InferenceSession(MODELS.get('face_recognizer_arcface_blendface').get('path'), providers = facefusion.globals.execution_providers)
 			if facefusion.globals.face_recognizer_model == 'arcface_inswapper':
 				face_recognizer = onnxruntime.InferenceSession(MODELS.get('face_recognizer_arcface_inswapper').get('path'), providers = facefusion.globals.execution_providers)
 			if facefusion.globals.face_recognizer_model == 'arcface_simswap':
 				face_recognizer = onnxruntime.InferenceSession(MODELS.get('face_recognizer_arcface_simswap').get('path'), providers = facefusion.globals.execution_providers)
-			gender_age = onnxruntime.InferenceSession(MODELS.get('gender_age').get('path'), providers = facefusion.globals.execution_providers)
+			gender_age = onnxruntime.InferenceSession(MODELS.get('gender_age').get('path'), providers = facefusion.globals.execution_providers)			
 			FACE_ANALYSER =\
 			{
 				'face_detector': face_detector,
@@ -108,7 +118,38 @@ def extract_faces(frame: Frame) -> List[Face]:
 	elif facefusion.globals.face_detector_model == 'yunet':
 		bbox_list, kps_list, score_list = detect_with_yunet(temp_frame, temp_frame_height, temp_frame_width, ratio_height, ratio_width)
 		return create_faces(frame, bbox_list, kps_list, score_list)
+	elif facefusion.globals.face_detector_model == 'yolo_face':
+		bbox_list, kps_list = detect_with_yolo_face(temp_frame, temp_frame_height, temp_frame_width, ratio_height, ratio_width)
+		return create_faces_yolo(bbox_list, kps_list)
 	return []
+
+
+def detect_with_yolo_face(temp_frame: Frame, temp_frame_height: int, temp_frame_width: int, ratio_height: float, ratio_width: float) -> Tuple[List[Bbox], List[Kps]]:
+	face_detector = get_face_analyser().get('face_detector')
+	bbox_list = []
+	kps_list = []
+	with THREAD_SEMAPHORE:
+		detections = face_detector.predict(source=temp_frame, mode='predict', device=torch.device('cpu'), classes=[0])
+	for detection in detections:
+		if detection.boxes is not None:
+			for box in detection.boxes.xyxy:
+				x1, y1, x2, y2 = map(float, box[:4])
+				bbox_list.append(numpy.array(
+				[
+					x1 * ratio_width,
+					y1 * ratio_height,
+					x2 * ratio_width,
+					y2 * ratio_height
+				]))
+		if detection.keypoints is not None:
+			for keypoints_tensor in detection.keypoints.xy:
+				keypoints_numpy = keypoints_tensor.numpy() if isinstance(keypoints_tensor, torch.Tensor) else keypoints_tensor
+				scaled_keypoints = []
+				for kp in keypoints_numpy:
+					scaled_kp = [kp[0] * ratio_width, kp[1] * ratio_height]
+					scaled_keypoints.append(scaled_kp)
+				kps_list.append(numpy.array(scaled_keypoints))
+	return bbox_list, kps_list
 
 
 def detect_with_retinaface(temp_frame : Frame, temp_frame_height : int, temp_frame_width : int, face_detector_height : int, face_detector_width : int, ratio_height : float, ratio_width : float) -> Tuple[List[Bbox], List[Kps], List[Score]]:
@@ -192,6 +233,25 @@ def create_faces(frame : Frame, bbox_list : List[Bbox], kps_list : List[Kps], sc
 				normed_embedding = normed_embedding,
 				gender = gender,
 				age = age
+			))
+	return faces
+
+
+def create_faces_yolo(bbox_list : List[Bbox], kps_list : List[Kps]) -> List[Face] :
+	faces : List[Face] = []
+	if facefusion.globals.face_detector_score > 0:
+		keep_indices = apply_nms(bbox_list, 0.4)
+		for index in keep_indices:
+			bbox = bbox_list[index]
+			kps = kps_list[index]
+			faces.append(Face(
+				bbox = bbox,
+				kps = kps,
+				score = None,
+				embedding = None,
+				normed_embedding = None,
+				gender = None,
+				age = None
 			))
 	return faces
 
