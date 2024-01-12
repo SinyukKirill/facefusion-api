@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 # Load a model
-model = YOLO(model='../../models/yolov8n-face.pt', task='detect')  # pretrained YOLOv8n model
+model = YOLO(model='models/yolov8n-face.pt', task='detect')  # pretrained YOLOv8n model
 
 # Run batched inference on an image
 input_size = (640, 640)
