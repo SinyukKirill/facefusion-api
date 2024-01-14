@@ -8,27 +8,27 @@ def image_to_base64_str(image_path):
         return encoded_string.decode('utf-8')
 
 # source_image_path = 'source.jpg'
-target_image_path = 'EeLIsFj51FcTzqVn.mp4'
-# target_image_path = 'error.jpg'
+# target_image_path = 'manyface.png'
+target_image_path = 'demo-2.mp4'
+# target_image_path = 'error-faces.jpg'
 
 # source_str = image_to_base64_str(source_image_path)
 target_str = image_to_base64_str(target_image_path)
 
 params = {
     'user_id': 'test',
-    # 'source': source_str,
     'target': target_str,
-    # 'source_type': 'jpg',
     'target_type': 'mp4',
-    # 'target_type': 'jpg',
+    # 'target_type': 'png',
     'frame_processors': ['face_blur'],
     'face_mask_blur': 0.5,
     'face_mask_padding': [5, 5, 5, 5],
     # 'keep_fps': True,
-    'execution_thread_count': 40,
-    'execution_queue_count': 16,
-    'face_selector_mode': 'one',
-    'face_detector_model': 'yolo_face'
+    'execution_thread_count': 24,
+    'execution_queue_count': 4,
+    'face_detector_score': 0.25,
+    'face_detector_iou': 0.4,
+    'face_detector_model': 'retinaface',
 }
 
 url = 'http://0.0.0.0:8000/'

@@ -13,6 +13,7 @@ FACE_ANALYSER_AGE_DROPDOWN : Optional[gradio.Dropdown] = None
 FACE_ANALYSER_GENDER_DROPDOWN : Optional[gradio.Dropdown] = None
 FACE_DETECTOR_SIZE_DROPDOWN : Optional[gradio.Dropdown] = None
 FACE_DETECTOR_SCORE_SLIDER : Optional[gradio.Slider] = None
+FACE_DETECTOR_IOU_SLIDER : Optional[gradio.Slider] = None
 FACE_DETECTOR_MODEL_DROPDOWN : Optional[gradio.Dropdown] = None
 
 
@@ -22,6 +23,7 @@ def render() -> None:
 	global FACE_ANALYSER_GENDER_DROPDOWN
 	global FACE_DETECTOR_SIZE_DROPDOWN
 	global FACE_DETECTOR_SCORE_SLIDER
+	global FACE_DETECTOR_IOU_SLIDER
 	global FACE_DETECTOR_MODEL_DROPDOWN
 
 	with gradio.Row():
@@ -57,12 +59,20 @@ def render() -> None:
 		minimum = facefusion.choices.face_detector_score_range[0],
 		maximum = facefusion.choices.face_detector_score_range[-1]
 	)
+	FACE_DETECTOR_IOU_SLIDER = gradio.Slider(
+		label = wording.get('face_detector_iou_slider_label'),
+		value = facefusion.globals.face_detector_iou,
+		step =facefusion.choices.face_detector_iou_range[1] - facefusion.choices.face_detector_iou_range[0],
+		minimum = facefusion.choices.face_detector_iou_range[0],
+		maximum = facefusion.choices.face_detector_iou_range[-1]
+	)
 	register_ui_component('face_analyser_order_dropdown', FACE_ANALYSER_ORDER_DROPDOWN)
 	register_ui_component('face_analyser_age_dropdown', FACE_ANALYSER_AGE_DROPDOWN)
 	register_ui_component('face_analyser_gender_dropdown', FACE_ANALYSER_GENDER_DROPDOWN)
 	register_ui_component('face_detector_model_dropdown', FACE_DETECTOR_MODEL_DROPDOWN)
 	register_ui_component('face_detector_size_dropdown', FACE_DETECTOR_SIZE_DROPDOWN)
 	register_ui_component('face_detector_score_slider', FACE_DETECTOR_SCORE_SLIDER)
+	register_ui_component('face_detector_iou_slider', FACE_DETECTOR_IOU_SLIDER)
 
 
 def listen() -> None:
@@ -72,6 +82,7 @@ def listen() -> None:
 	FACE_DETECTOR_MODEL_DROPDOWN.change(update_face_detector_model, inputs = FACE_DETECTOR_MODEL_DROPDOWN)
 	FACE_DETECTOR_SIZE_DROPDOWN.select(update_face_detector_size, inputs = FACE_DETECTOR_SIZE_DROPDOWN)
 	FACE_DETECTOR_SCORE_SLIDER.change(update_face_detector_score, inputs = FACE_DETECTOR_SCORE_SLIDER)
+	FACE_DETECTOR_IOU_SLIDER.change(update_face_detector_iou, inputs = FACE_DETECTOR_IOU_SLIDER)
 
 
 def update_face_analyser_order(face_analyser_order : FaceAnalyserOrder) -> None:
@@ -96,3 +107,6 @@ def update_face_detector_size(face_detector_size : str) -> None:
 
 def update_face_detector_score(face_detector_score : float) -> None:
 	facefusion.globals.face_detector_score = face_detector_score
+
+def update_face_detector_iou(face_detector_iou : float) -> None:
+	facefusion.globals.face_detector_iou = face_detector_iou

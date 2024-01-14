@@ -23,6 +23,7 @@ face_analyser_gender : Optional[FaceAnalyserGender] = None
 face_detector_model : Optional[FaceDetectorModel] = None
 face_detector_size : Optional[str] = None
 face_detector_score : Optional[float] = None
+face_detector_iou : Optional[float] = None
 face_recognizer_model : Optional[FaceRecognizerModel] = None
 # face selector
 face_selector_mode : Optional[FaceSelectorMode] = None

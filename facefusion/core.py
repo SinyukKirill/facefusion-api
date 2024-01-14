@@ -42,8 +42,8 @@ def cli() -> None:
 	# execution
 	group_execution = program.add_argument_group('execution')
 	group_execution.add_argument('--execution-providers', help = wording.get('execution_providers_help'), dest = 'execution_providers', default = [ 'cpu' ], choices = encode_execution_providers(onnxruntime.get_available_providers()), nargs = '+')
-	group_execution.add_argument('--execution-thread-count', help = wording.get('execution_thread_count_help'), dest = 'execution_thread_count', type = int, default = 4, choices = facefusion.choices.execution_thread_count_range, metavar = create_metavar(facefusion.choices.execution_thread_count_range))
-	group_execution.add_argument('--execution-queue-count', help = wording.get('execution_queue_count_help'), dest = 'execution_queue_count', type = int, default = 1, choices = facefusion.choices.execution_queue_count_range, metavar = create_metavar(facefusion.choices.execution_queue_count_range))
+	group_execution.add_argument('--execution-thread-count', help = wording.get('execution_thread_count_help'), dest = 'execution_thread_count', type = int, default = 24, choices = facefusion.choices.execution_thread_count_range, metavar = create_metavar(facefusion.choices.execution_thread_count_range))
+	group_execution.add_argument('--execution-queue-count', help = wording.get('execution_queue_count_help'), dest = 'execution_queue_count', type = int, default = 4, choices = facefusion.choices.execution_queue_count_range, metavar = create_metavar(facefusion.choices.execution_queue_count_range))
 	group_execution.add_argument('--max-memory', help = wording.get('max_memory_help'), dest = 'max_memory', type = int, choices = facefusion.choices.max_memory_range, metavar = create_metavar(facefusion.choices.max_memory_range))
 	# face analyser
 	group_face_analyser = program.add_argument_group('face analyser')
@@ -52,7 +52,8 @@ def cli() -> None:
 	group_face_analyser.add_argument('--face-analyser-gender', help = wording.get('face_analyser_gender_help'), dest = 'face_analyser_gender', choices = facefusion.choices.face_analyser_genders)
 	group_face_analyser.add_argument('--face-detector-model', help = wording.get('face_detector_model_help'), dest = 'face_detector_model', default = 'retinaface', choices = facefusion.choices.face_detector_models)
 	group_face_analyser.add_argument('--face-detector-size', help = wording.get('face_detector_size_help'), dest = 'face_detector_size', default = '640x640', choices = facefusion.choices.face_detector_sizes)
-	group_face_analyser.add_argument('--face-detector-score', help = wording.get('face_detector_score_help'), dest = 'face_detector_score', type = float, default = 0.5, choices = facefusion.choices.face_detector_score_range, metavar = create_metavar(facefusion.choices.face_detector_score_range))
+	group_face_analyser.add_argument('--face-detector-score', help = wording.get('face_detector_score_help'), dest = 'face_detector_score', type = float, default = 0.25, choices = facefusion.choices.face_detector_score_range, metavar = create_metavar(facefusion.choices.face_detector_score_range))
+	group_face_analyser.add_argument('--face-detector-iou', help = wording.get('face_detector_iou_help'), dest = 'face_detector_iou', type = float, default = 0.7, choices = facefusion.choices.face_detector_iou_range, metavar = create_metavar(facefusion.choices.face_detector_iou_range))
 	# face selector
 	group_face_selector = program.add_argument_group('face selector')
 	group_face_selector.add_argument('--face-selector-mode', help = wording.get('face_selector_mode_help'), dest = 'face_selector_mode', default = 'reference', choices = facefusion.choices.face_selector_modes)
@@ -114,6 +115,7 @@ def apply_args(program : ArgumentParser) -> None:
 	facefusion.globals.face_detector_model = args.face_detector_model
 	facefusion.globals.face_detector_size = args.face_detector_size
 	facefusion.globals.face_detector_score = args.face_detector_score
+	facefusion.globals.face_detector_iou = args.face_detector_iou
 	# face selector
 	facefusion.globals.face_selector_mode = args.face_selector_mode
 	facefusion.globals.reference_face_position = args.reference_face_position

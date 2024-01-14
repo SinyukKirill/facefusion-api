@@ -17,29 +17,30 @@ class Params(BaseModel):
     max_memory: Optional[int] = 0
 
     # face analyser
-    face_analyser_order: Optional[FaceAnalyserOrder] = 'left-right'
+    face_analyser_order: Optional[FaceAnalyserOrder] = None
     face_analyser_age: Optional[FaceAnalyserAge] = None
     face_analyser_gender: Optional[FaceAnalyserGender] = None
-    face_detector_model: Optional[FaceDetectorModel] = 'retinaface'
-    face_detector_size: Optional[str] = '640x640'
-    face_detector_score: Optional[float] = 0.5
-    face_recognizer_model: Optional[FaceRecognizerModel] = 'arcface_inswapper'
+    face_detector_model: Optional[FaceDetectorModel] = None
+    face_detector_size: Optional[str] = None
+    face_detector_score: Optional[float] = None
+    face_detector_iou: Optional[float] = None
+    face_recognizer_model: Optional[FaceRecognizerModel] = None
 
     # face selector
-    face_selector_mode: Optional[FaceSelectorMode] = 'reference'
-    reference_face_position: Optional[int] = 0
-    reference_face_distance: Optional[float] = 0.6
-    reference_frame_number: Optional[int] = 0
+    face_selector_mode: Optional[FaceSelectorMode] = None
+    reference_face_position: Optional[int] = None
+    reference_face_distance: Optional[float] = None
+    reference_frame_number: Optional[int] = None
 
     # face mask
-    face_mask_blur: Optional[float] = 0.3
-    face_mask_padding: Optional[Padding] = (0, 0, 0, 0)
+    face_mask_blur: Optional[float] = None
+    face_mask_padding: Optional[Padding] = None
 
     # frame extraction
     trim_frame_start: Optional[int] = None
     trim_frame_end: Optional[int] = None
-    temp_frame_format: Optional[TempFrameFormat] = 'jpg'
-    temp_frame_quality: Optional[int] = 100
+    temp_frame_format: Optional[TempFrameFormat] = None
+    temp_frame_quality: Optional[int] = None
     keep_temp: Optional[bool] = False
 
     # output creation

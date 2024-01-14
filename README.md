@@ -31,7 +31,8 @@ face_analyser_age: Optional[FaceAnalyserAge] = None
 face_analyser_gender: Optional[FaceAnalyserGender] = None
 face_detector_model: Optional[FaceDetectorModel] = 'retinaface'
 face_detector_size: Optional[str] = '640x640'
-face_detector_score: Optional[float] = 0.5
+face_detector_score: Optional[float] = 0.25
+face_detector_iou: Optional[float] = 0.4
 face_recognizer_model: Optional[FaceRecognizerModel] = 'arcface_inswapper'
 
 # face selector

@@ -99,7 +99,6 @@ def create_ellipse_mask_frame(mask_size: Size, face_mask_blur: float, face_mask_
     return mask_frame
 
 
-
 @lru_cache(maxsize = None)
 def create_static_anchors(feature_stride : int, anchor_total : int, stride_height : int, stride_width : int) -> numpy.ndarray[Any, Any]:
 	y, x = numpy.mgrid[:stride_height, :stride_width][::-1]

@@ -6,6 +6,8 @@ import onnx
 import onnxruntime
 from onnx import numpy_helper
 import cv2
+import time
+
 
 import facefusion.globals
 import facefusion.processors.frame.core as frame_processors
@@ -140,7 +142,7 @@ def apply_blur_to_face(target_face: Face, temp_frame: Frame) -> Frame:
 
 
 def apply_blur(crop_frame: Frame) -> Frame:
-    blurred_frame = cv2.GaussianBlur(crop_frame, (45, 45), 0)
+    blurred_frame = cv2.GaussianBlur(crop_frame, (301, 301), 0)
     return blurred_frame
 
 
@@ -163,11 +165,13 @@ def normalize_crop_frame(crop_frame : Frame) -> Frame:
 
 def process_frame(temp_frame: Frame) -> Frame:
 	many_faces = get_many_faces(temp_frame)
+	if len(many_faces) > 1:
+		print('more than one face detected in this frame.')
+		write_image(f'temp/manyfaces/more_than_one_face_detected-{time.time()}.jpg', temp_frame)
 	if many_faces:
 		for target_face in many_faces:
 			temp_frame = apply_blur_to_face(target_face, temp_frame)
 	else:
-		import time
 		print('No face detected in this frame.')
 		write_image(f'temp/error/no_face_detected-{time.time()}.jpg', temp_frame)
 	return temp_frame

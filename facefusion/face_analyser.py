@@ -19,10 +19,15 @@ THREAD_LOCK : threading.Lock = threading.Lock()
 MODELS : Dict[str, ModelValue] =\
 {
 	# TODO: githubのurl変える
-	'face_detector_yolo_face':
+	'face_detector_yolo_face_pt':
 	{
 		'url': '',
 		'path': resolve_relative_path('../.assets/models/yolov8n-face.pt')
+	},
+	'face_detector_yolo_face_onnx':
+	{
+		'url': '',
+		'path': resolve_relative_path('../.assets/models/yolov8n-face.onnx')
 	},
 	'face_detector_retinaface':
 	{
@@ -66,8 +71,10 @@ def get_face_analyser() -> Any:
 				face_detector = onnxruntime.InferenceSession(MODELS.get('face_detector_retinaface').get('path'), providers = facefusion.globals.execution_providers)
 			if facefusion.globals.face_detector_model == 'yunet':
 				face_detector = cv2.FaceDetectorYN.create(MODELS.get('face_detector_yunet').get('path'), '', (0, 0))
-			if facefusion.globals.face_detector_model == 'yolo_face':
-				face_detector = YOLO(MODELS.get('face_detector_yolo_face').get('path'))
+			if facefusion.globals.face_detector_model == 'yolo_face_pt':
+				face_detector = YOLO(MODELS.get('face_detector_yolo_face_pt').get('path'))
+			if facefusion.globals.face_detector_model == 'yolo_face_onnx':
+				face_detector = onnxruntime.InferenceSession((MODELS.get('face_detector_yolo_face_onnx').get('path')), providers = facefusion.globals.execution_providers)
 			if facefusion.globals.face_recognizer_model == 'arcface_blendface':
 				face_recognizer = onnxruntime.InferenceSession(MODELS.get('face_recognizer_arcface_blendface').get('path'), providers = facefusion.globals.execution_providers)
 			if facefusion.globals.face_recognizer_model == 'arcface_inswapper':
@@ -118,13 +125,16 @@ def extract_faces(frame: Frame) -> List[Face]:
 	elif facefusion.globals.face_detector_model == 'yunet':
 		bbox_list, kps_list, score_list = detect_with_yunet(temp_frame, temp_frame_height, temp_frame_width, ratio_height, ratio_width)
 		return create_faces(frame, bbox_list, kps_list, score_list)
-	elif facefusion.globals.face_detector_model == 'yolo_face':
-		bbox_list, kps_list = detect_with_yolo_face(temp_frame, temp_frame_height, temp_frame_width, ratio_height, ratio_width)
-		return create_faces_yolo(bbox_list, kps_list)
+	elif facefusion.globals.face_detector_model == 'yolo_face_pt':
+		bbox_list, kps_list = detect_with_yolo_face_pt(temp_frame, ratio_height, ratio_width)
+		return create_faces_yolo_pt(bbox_list, kps_list)
+	elif facefusion.globals.face_detector_model == 'yolo_face_onnx':
+		bbox_list, kps_list, score_list = detect_with_yolo_face_onnx(frame)
+		return create_faces(frame, bbox_list, kps_list, score_list)
 	return []
 
 
-def detect_with_yolo_face(temp_frame: Frame, temp_frame_height: int, temp_frame_width: int, ratio_height: float, ratio_width: float) -> Tuple[List[Bbox], List[Kps]]:
+def detect_with_yolo_face_pt(temp_frame: Frame, ratio_height: float, ratio_width: float) -> Tuple[List[Bbox], List[Kps]]:
 	face_detector = get_face_analyser().get('face_detector')
 	bbox_list = []
 	kps_list = []
@@ -150,6 +160,79 @@ def detect_with_yolo_face(temp_frame: Frame, temp_frame_height: int, temp_frame_
 					scaled_keypoints.append(scaled_kp)
 				kps_list.append(numpy.array(scaled_keypoints))
 	return bbox_list, kps_list
+
+
+def detect_with_yolo_face_onnx(temp_frame: Frame) -> Tuple[List[Bbox], List[Kps], List[Score]]:
+	face_detector = get_face_analyser().get('face_detector')
+
+	input_size = (640, 640)
+	# 新しいサイズに合わせてアスペクト比を保持するために画像をリサイズ
+	shape = temp_frame.shape[:2]  # 現在の画像サイズを取得
+	ratio = min(input_size[0] / shape[0], input_size[1] / shape[1])
+	new_unpad = int(round(shape[1] * ratio)), int(round(shape[0] * ratio))
+	dw, dh = input_size[1] - new_unpad[0], input_size[0] - new_unpad[1]  # パディング幅を計算
+	dw /= 2  # 左右のパディング
+	dh /= 2  # 上下のパディング
+
+	# BGRからRGBへの変換
+	temp_frame = cv2.cvtColor(temp_frame, cv2.COLOR_BGR2RGB)
+	temp_frame = cv2.resize(temp_frame, new_unpad, interpolation=cv2.INTER_LINEAR)
+	top, bottom = round(dh - 0.1), round(dh + 0.1)
+	left, right = round(dw - 0.1), round(dw + 0.1)
+	temp_frame = cv2.copyMakeBorder(temp_frame, top, bottom, left, right, cv2.BORDER_CONSTANT, value=(114, 114, 114))  # パディング適用
+	temp_frame = temp_frame.astype(numpy.float32) / 255.0
+
+	# BCHW形式に変換
+	temp_frame = numpy.transpose(temp_frame, (2, 0, 1))
+	temp_frame = numpy.expand_dims(temp_frame, axis=0)
+
+	# 推論実行
+	with THREAD_SEMAPHORE:
+		pred = face_detector.run(None, {face_detector.get_inputs()[0].name: temp_frame})
+
+	pred = numpy.squeeze(pred)
+	pred = numpy.transpose(pred, (1, 0))
+	bbox, score, kps = numpy.split(pred, [4, 5], axis=1)
+
+	new_ratio = 1/ratio
+	x_center, y_center, width, height = bbox[:, 0], bbox[:, 1], bbox[:, 2], bbox[:, 3]
+	# スケール変換の修正
+	x_min = (x_center - (width / 2) - dw) * new_ratio
+	y_min = (y_center - (height / 2) - dh) * new_ratio
+	x_max = (x_center + (width / 2) - dw) * new_ratio
+	y_max = (y_center + (height / 2) - dh) * new_ratio
+	bbox = numpy.stack((x_min, y_min, x_max, y_max), axis=1)
+
+	# キーポイント変換の修正
+	for i in range(kps.shape[1] // 3):
+		kps[:, i * 3] = (kps[:, i * 3] - dw) * new_ratio
+		kps[:, i * 3 + 1] = (kps[:, i * 3 + 1] - dh) * new_ratio
+
+	# スコアの閾値設定
+	indices_above_threshold = numpy.where(score > facefusion.globals.face_detector_score)[0]
+
+	bbox = bbox[indices_above_threshold]
+	score = score[indices_above_threshold]
+	kps = kps[indices_above_threshold]
+
+	bbox_list = []
+	for box in bbox:
+		bbox_list.append(numpy.array(
+		[
+			box[0],
+			box[1],
+			box[2],
+			box[3],
+		]))
+	score_list = score.ravel().tolist()
+	kps_list = []
+	for keypoints in kps:
+		kps_xy = []
+		for i in range(0, len(keypoints), 3):
+			kps_xy.append([keypoints[i], keypoints[i+1]])
+		kps_list.append(numpy.array(kps_xy))
+
+	return bbox_list, kps_list, score_list
 
 
 def detect_with_retinaface(temp_frame : Frame, temp_frame_height : int, temp_frame_width : int, face_detector_height : int, face_detector_width : int, ratio_height : float, ratio_width : float) -> Tuple[List[Bbox], List[Kps], List[Score]]:
@@ -217,8 +300,10 @@ def detect_with_yunet(temp_frame : Frame, temp_frame_height : int, temp_frame_wi
 
 def create_faces(frame : Frame, bbox_list : List[Bbox], kps_list : List[Kps], score_list : List[Score]) -> List[Face] :
 	faces : List[Face] = []
+	# print(f'bbox_list: {bbox_list}')
 	if facefusion.globals.face_detector_score > 0:
-		keep_indices = apply_nms(bbox_list, 0.4)
+		keep_indices = apply_nms(bbox_list, facefusion.globals.face_detector_iou)
+		# print(f'keep_indices: {keep_indices}')
 		for index in keep_indices:
 			bbox = bbox_list[index]
 			kps = kps_list[index]
@@ -234,10 +319,25 @@ def create_faces(frame : Frame, bbox_list : List[Bbox], kps_list : List[Kps], sc
 				gender = gender,
 				age = age
 			))
+	# print(f'faces: {faces}')
+	bbox_list = []
+	kps_list = []
+	for face in faces:
+		bbox_list.append(face.bbox)
+		kps_list.append(face.kps)
+	# print(f'bbox_list: {bbox_list}')
+	# print(f'kps_list: {kps_list}')
+	# for bbox, keypoints in zip(bbox_list, kps_list):
+	# 	start_point = (int(bbox[0]), int(bbox[1]))
+	# 	end_point = (int(bbox[2]), int(bbox[3]))
+	# 	frame = cv2.rectangle(frame, start_point, end_point, (0, 255, 0), 2)
+	# 	for kp in keypoints:
+	# 		x, y = int(kp[0]), int(kp[1])
+	# 		frame = cv2.circle(frame, (x, y), 2, (0, 0, 255), -1)
 	return faces
 
 
-def create_faces_yolo(bbox_list : List[Bbox], kps_list : List[Kps]) -> List[Face] :
+def create_faces_yolo_pt(bbox_list : List[Bbox], kps_list : List[Kps]) -> List[Face] :
 	faces : List[Face] = []
 	if facefusion.globals.face_detector_score > 0:
 		keep_indices = apply_nms(bbox_list, 0.4)
