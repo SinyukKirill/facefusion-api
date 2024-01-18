@@ -16,7 +16,7 @@ from facefusion.face_analyser import get_one_face, get_many_faces, find_similar_
 from facefusion.face_helper import warp_face, paste_back_ellipse
 from facefusion.face_reference import get_face_reference
 from facefusion.content_analyser import clear_content_analyser
-from facefusion.typing import Face, Frame, Update_Process, ProcessMode, ModelValue, OptionsWithModel, Embedding
+from facefusion.typing import Face, Frame, Update_Process, ProcessMode, ModelValue, OptionsWithModel, Embedding, Padding
 from facefusion.utilities import conditional_download, resolve_relative_path, is_image, is_video, is_file, is_download_done, update_status
 from facefusion.vision import read_image, read_static_image, write_image
 from facefusion.processors.frame import globals as frame_processors_globals
@@ -130,21 +130,52 @@ def post_process() -> None:
 	read_static_image.cache_clear()
 
 
-def apply_blur_to_face(target_face: Face, temp_frame: Frame) -> Frame:
-    model_template = get_options('model').get('template')
-    model_size = get_options('model').get('size')
-    crop_frame, affine_matrix = warp_face(temp_frame, target_face.kps, model_template, model_size)
+# def apply_blur_to_face(target_face: Face, temp_frame: Frame) -> Frame:
+#     model_template = get_options('model').get('template')
+#     model_size = get_options('model').get('size')
+#     crop_frame, affine_matrix = warp_face(temp_frame, target_face.kps, model_template, model_size)
 
-    blurred_face = apply_blur(crop_frame)
-    temp_frame = paste_back_ellipse(temp_frame, blurred_face, affine_matrix, facefusion.globals.face_mask_blur, facefusion.globals.face_mask_padding)
+#     blurred_face = apply_blur(crop_frame)
+#     temp_frame = paste_back_ellipse(temp_frame, blurred_face, affine_matrix, facefusion.globals.face_mask_blur, facefusion.globals.face_mask_padding)
 
-    return temp_frame
+#     return temp_frame
 
 
-def apply_blur(crop_frame: Frame) -> Frame:
-    blurred_frame = cv2.GaussianBlur(crop_frame, (301, 301), 0)
-    return blurred_frame
+# def apply_blur(crop_frame: Frame) -> Frame:
+#     blurred_frame = cv2.GaussianBlur(crop_frame, (301, 301), 0)
+#     return blurred_frame
 
+def apply_blur_to_face(target_face: Face, temp_frame: Frame, face_mask_blur : float, face_mask_padding : Padding) -> Frame:
+	mask = numpy.zeros_like(temp_frame)
+	bbox = target_face.bbox
+	x1 = bbox[0]
+	y1 = bbox[1]
+	x2 = bbox[2]
+	y2 = bbox[3]
+	mask_size = (x2 - x1, y2 - y1)
+	center_x, center_y = (x1 + x2) // 2, (y1 + y2) // 2
+	axis_x, axis_y = (x2 - x1) // 2 + int(mask_size[0] * face_mask_padding[0] / 100), (y2 - y1) // 2 + int(mask_size[1] * face_mask_padding[1] / 100)
+
+	# 楕円形のマスクを作成
+	cv2.ellipse(mask, (int(center_x), int(center_y)), (int(axis_x), int(axis_y)), 0, 0, 360, (255, 255, 255), -1)
+
+	# マスクの境界にぼかしを適用
+	blur_amount = int(mask_size[0] * 0.5 * face_mask_blur)
+	blurred_mask = cv2.GaussianBlur(mask, (45, 45), blur_amount * 0.25)
+
+	print(f'blurred_mask.shape: {blurred_mask.shape}')
+
+	# 元の画像にぼかしを適用
+	blurred_image = cv2.GaussianBlur(temp_frame, (45, 45), 0)
+
+	print(f'blurred_image.shape: {blurred_image.shape}')
+
+	# マスクを適用して元の画像とぼかした画像を結合
+	blurred_area = numpy.where(blurred_mask == numpy.array([255, 255, 255]), blurred_image, temp_frame)
+
+	print(f'blurred_area.shape: {blurred_area.shape}')
+
+	return blurred_area
 
 def prepare_crop_frame(crop_frame : Frame) -> Frame:
 	model_mean = get_options('model').get('mean')
@@ -170,7 +201,7 @@ def process_frame(temp_frame: Frame) -> Frame:
 		write_image(f'temp/manyfaces/more_than_one_face_detected-{time.time()}.jpg', temp_frame)
 	if many_faces:
 		for target_face in many_faces:
-			temp_frame = apply_blur_to_face(target_face, temp_frame)
+			temp_frame = apply_blur_to_face(target_face, temp_frame, facefusion.globals.face_mask_blur, facefusion.globals.face_mask_padding)
 	else:
 		print('No face detected in this frame.')
 		write_image(f'temp/error/no_face_detected-{time.time()}.jpg', temp_frame)
